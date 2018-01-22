@@ -23,12 +23,6 @@ const notes = [
   }
 ]
 
-const Note = ({ note }) => {
-    return (
-      <li>{note.content}</li>
-    )
-  }
-
   ReactDOM.render(
     <App notes={notes} />,
     document.getElementById('root')

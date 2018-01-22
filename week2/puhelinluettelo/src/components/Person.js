@@ -2,7 +2,7 @@ import React from 'react'
 
 const Person = ({ person }) => {
   return (
-    <div>{person.name} {person.phone}</div>
+    <div>{person.name} {person.number}</div>
   )
 }
 

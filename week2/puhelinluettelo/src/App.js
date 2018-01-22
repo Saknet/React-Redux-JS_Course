@@ -1,11 +1,12 @@
 import React from 'react';
 import Person from './components/Person'
+import axios from 'axios'
 
 class App extends React.Component {
     constructor(props) {
       super(props)
       this.state = {
-        persons: props.persons,
+        persons: [],
         newPerson: '',
         newNumber: '',
         search: '',
@@ -13,12 +14,22 @@ class App extends React.Component {
       }
     }
 
+    componentWillMount() {
+        console.log('will mount')
+        axios
+          .get('http://localhost:3001/persons')
+          .then(response => {
+            console.log('promise fulfilled')
+            this.setState({ persons: response.data })
+          })
+      }
+
     addPerson = (event) => {
         event.preventDefault()
         if (!this.personAlreadyIncluded(this.state.newPerson)) {
             const personObject = {
             name: this.state.newPerson,
-            phone: this.state.newNumber,
+            number: this.state.newNumber,
             id: this.state.persons.length + 1
         }
         

@@ -1,6 +1,7 @@
 import React from 'react';
 import Person from './components/Person'
-import axios from 'axios'
+import personService from './services/persons'
+import './index.css'
 
 class App extends React.Component {
     constructor(props) {
@@ -10,50 +11,80 @@ class App extends React.Component {
         newPerson: '',
         newNumber: '',
         search: '',
+        deleteId: '',
         showAll: true
       }
     }
 
     componentWillMount() {
-        console.log('will mount')
-        axios
-          .get('http://localhost:3001/persons')
-          .then(response => {
-            console.log('promise fulfilled')
-            this.setState({ persons: response.data })
-          })
-      }
+        personService
+        .getAll()
+        .then(persons => {
+          this.setState({persons})
+        })
+    }
 
     addPerson = (event) => {
         event.preventDefault()
-        if (!this.personAlreadyIncluded(this.state.newPerson)) {
-            const personObject = {
+        const personObject = {
             name: this.state.newPerson,
-            number: this.state.newNumber,
-            id: this.state.persons.length + 1
+            number: this.state.newNumber
         }
-        
-        const persons = this.state.persons.concat(personObject)
-            
-        this.setState({
-            persons,
-            newPerson: '',
-            newNumber: ''
-        })
+
+        const includedId = this.personAlreadyIncluded(personObject.name);
+        if (!this.personAlreadyIncluded(personObject.name))  {
+            personService
+            .create(personObject)
+            .then(newPerson => {
+                this.setState({
+                    persons: this.state.persons.concat(newPerson),
+                    newPerson: '',
+                    newNumber: ''
+                })
+            })
         }  else {
+            alert("That person is already included");
+            this.updatePerson(includedId, personObject);
+        }
+    }
+    
+    updatePerson = (id, person) => {
+        const c = window.confirm(this.state.newPerson + " on jo luettelossa, korvataanko vanha numero uudella?" )
+        if (c) {
+            const i = this.getPersonIndex(person);
+            const updatedPersons = this.state.persons;;
+            updatedPersons[i].number = this.state.newNumber;
+            personService
+            .update(id, person)
+            .then(
+                this.setState({
+                    persons: updatedPersons,
+                    newPerson: '',
+                    newNumber: ''
+                })
+            )
+        } else {
             this.setState({
                 persons: this.state.persons,
                 newPerson: '',
                 newNumber: ''
-            })
+            })           
+        }   
+    }
+
+    getPersonIndex(person) {
+        for (let i = 0; i < this.state.persons.length; i++) {
+            if (this.state.persons[i].name === person.name) {
+                return i;
+            }
         }
     }
+
 
     personAlreadyIncluded(name) {
         for (let i = 0; i < this.state.persons.length; i++) {
             if (this.state.persons[i].name === name) {
-                alert("That person is already included");
-                return true;
+                return this.state.persons[i].id;
             }
         }
 
@@ -61,6 +92,7 @@ class App extends React.Component {
     }
 
     handlePersonChange = (event) => {
+        event.preventDefault()
         if (!this.personAlreadyIncluded(this.state.newPerson)) {
             this.setState({ newPerson: event.target.value }) 
         }
@@ -86,6 +118,19 @@ class App extends React.Component {
         }
 
         return persons;
+    }
+
+    removePerson = (name, id) => {
+        return () => {
+            const c = window.confirm("poistetaanko henkilö " + name + " puhelinluettelosta?" )
+            if (c) {
+                personService
+                .removePerson(id)
+                .then(
+                    this.setState({ persons: this.state.persons.filter(n => n.id !== id) })
+                )
+            }
+        }
     }
   
     render() {
@@ -127,6 +172,11 @@ class App extends React.Component {
           <ul>
             {personsToShow.map(person => <Person key = {person.id} person = {person} />)}
           </ul>
+          <ul>
+            {personsToShow.map(person => <form key = {person.id} onSubmit = {this.removePerson(person.name, person.id)}>
+                <button type = "submit"> poista </button>
+            </form>)}
+          </ul>          
         </div>
       )
     }

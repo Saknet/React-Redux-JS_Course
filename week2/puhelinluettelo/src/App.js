@@ -2,6 +2,7 @@ import React from 'react';
 import Person from './components/Person'
 import personService from './services/persons'
 import './index.css'
+import Notification from './components/Notification'
 
 class App extends React.Component {
     constructor(props) {
@@ -12,7 +13,8 @@ class App extends React.Component {
         newNumber: '',
         search: '',
         deleteId: '',
-        showAll: true
+        showAll: true,
+        error: null
       }
     }
 
@@ -31,17 +33,21 @@ class App extends React.Component {
             number: this.state.newNumber
         }
 
-        const includedId = this.personAlreadyIncluded(personObject.name);
-        if (!this.personAlreadyIncluded(personObject.name))  {
+        const includedId = this.personAlreadyIncluded(event, personObject.name);
+        if (!this.personAlreadyIncluded(event, personObject.name))  {
             personService
             .create(personObject)
             .then(newPerson => {
                 this.setState({
                     persons: this.state.persons.concat(newPerson),
                     newPerson: '',
-                    newNumber: ''
+                    newNumber: '',
+                    error: `Henkilö '${personObject.name}' lisättiin onnistuneesti puhelinluetteloon`
                 })
             })
+            setTimeout(() => {
+                this.setState({error: null})
+            }, 5000)
         }  else {
             alert("That person is already included");
             this.updatePerson(includedId, personObject);
@@ -56,13 +62,34 @@ class App extends React.Component {
             updatedPersons[i].number = this.state.newNumber;
             personService
             .update(id, person)
+            .catch(error => {
+                    personService
+                    .create(person)
+                    .then(newPerson => {
+                        const persons = this.state.persons.filter(n => n.id !==id);
+                        this.setState({
+                            persons: persons.concat(newPerson),
+                            newPerson: '',
+                            newNumber: '',
+                            error: `Henkilö '${person.name}' oli valitettavasti jo poistettu, kuitenkin nyt henkilö on uudestaan lisätty puhelinluetteloon`
+                        })
+                    })
+                    setTimeout(() => {
+                        this.setState({error: null})
+                    }, 5000)
+                
+            })
             .then(
                 this.setState({
                     persons: updatedPersons,
                     newPerson: '',
-                    newNumber: ''
+                    newNumber: '',
+                    error: `Henkilön '${person.name}' numero päivitettiin onnistuneesti puhelinluetteloon`
                 })
             )
+            setTimeout(() => {
+                this.setState({error: null})
+            }, 5000)
         } else {
             this.setState({
                 persons: this.state.persons,
@@ -81,7 +108,7 @@ class App extends React.Component {
     }
 
 
-    personAlreadyIncluded(name) {
+    personAlreadyIncluded(event, name) {
         for (let i = 0; i < this.state.persons.length; i++) {
             if (this.state.persons[i].name === name) {
                 return this.state.persons[i].id;
@@ -99,10 +126,12 @@ class App extends React.Component {
       }
 
     handleNumberChange = (event) => {
+        event.preventDefault()
         this.setState({ newNumber: event.target.value })       
     }  
 
     handleSearch = (event) => {
+        event.preventDefault()
         this.setState({ search: event.target.value })
         if (this.state.showAll) {
             this.setState({showAll: !this.state.showAll})
@@ -127,8 +156,13 @@ class App extends React.Component {
                 personService
                 .removePerson(id)
                 .then(
-                    this.setState({ persons: this.state.persons.filter(n => n.id !== id) })
-                )
+                    this.setState({ 
+                        persons: this.state.persons.filter(n => n.id !== id),
+                        error: `Henkilö '${name}' poistettiin onnistuneesti puhelinluettelosta`
+                    })                )
+                setTimeout(() => {
+                    this.setState({error: null})
+                }, 5000)
             }
         }
     }
@@ -141,7 +175,8 @@ class App extends React.Component {
             
       return (
         <div>
-          <h2>Puhelinluettelo</h2>
+          <h1>Puhelinluettelo</h1>
+          <Notification message = {this.state.error}/>
           <div className = "filter-list">
           <form>
               rajaa näytettäviä <input 
@@ -168,15 +203,10 @@ class App extends React.Component {
               <button type="submit">lisää</button>
             </div>
           </form>
-          <h2>Numerot</h2>
-          <ul>
-            {personsToShow.map(person => <Person key = {person.id} person = {person} />)}
-          </ul>
-          <ul>
-            {personsToShow.map(person => <form key = {person.id} onSubmit = {this.removePerson(person.name, person.id)}>
-                <button type = "submit"> poista </button>
-            </form>)}
-          </ul>          
+          <h2>Numerot</h2>     
+            <ul>
+                {personsToShow.map(person => <Person key = {person.id} person = {person} removePerson = {this.removePerson(person.name, person.id)}/>)}
+            </ul>          
         </div>
       )
     }

@@ -12,7 +12,7 @@ class App extends React.Component {
             search: '',
             showNothing: true,
             manyCountries: true,
-            countryData: []
+            countryData: null
         }
     }
 
@@ -53,12 +53,15 @@ class App extends React.Component {
         return flag;
     }
 
-    switchToOneCountry = () => {
-
+    findCountry = (name) => {
+        return this.state.countries.filter(country => country.name === name)
     }
 
-    setCountryData = (country) => {
-        
+    setCountryName = (name) => {
+        const country = this.findCountry(name)
+        return () => {
+            this.setState({countryData: country})
+        }
     }
 
     render () {
@@ -67,13 +70,14 @@ class App extends React.Component {
             this.state.countries :
             this.filterList(this.state.search)
 
+        let startingText = 'too many matches, specify another filter'
         let countryNames = []
-        countryNames[0] = 'too many matches, specify another filter'
         let countryData = []
         let flagCode = null
         let flagURL = null
         
         if (countriesToShow.length < 10 && countriesToShow.length > 1) {
+            startingText = ''
             countryNames = countriesToShow.map(c => c.name)
         }
 
@@ -81,6 +85,14 @@ class App extends React.Component {
             countryNames = []
             countryData = countriesToShow
             flagCode = countriesToShow[0].alpha3Code.toLowerCase()
+            flagURL = `https://restcountries.eu/data/${flagCode}.svg`
+        }
+
+        if (this.state.countryData !== null) {
+            countryData = this.state.countryData
+            startingText = ''
+            countryNames = []
+            flagCode = countryData[0].alpha3Code.toLowerCase()
             flagURL = `https://restcountries.eu/data/${flagCode}.svg`
         }
 
@@ -92,7 +104,10 @@ class App extends React.Component {
                     onChange = {this.handleSearch}/>
                 </form>
                 <div>              
-                    {countryNames.map(country => <Country key = {country} country = {country} />)}
+                    {startingText}
+                </div>
+                <div>              
+                    {countryNames.map(country => <Country key = {country} country = {country} setCountry = {this.setCountryName(country)}/>)}
                 </div>
                 <div>
                     { countryData.map(country => <CountryData key = {country} country = {country}/>) }    
